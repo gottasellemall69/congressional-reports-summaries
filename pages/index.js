@@ -56,7 +56,7 @@ export default function Home() {
         ) : error ? (
           <p className="text-red-500">{ error }</p>
         ) : (
-          <div className="grid grid-cols-4 flex-wrap mx-auto gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 flex-wrap mx-auto gap-6">
             { records.map( ( record ) => {
               const pdfUrl = record.contents?.issue?.fullIssue?.entireIssue?.[ 0 ]?.url;
               return (
