@@ -5,7 +5,7 @@ const axios = require( 'axios' );
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DATABASE_NAME = 'congressionalSummaries';
 const COLLECTION_NAME = 'summaries';
-const NEXT_PUBLIC_CONGRESS_API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY;
+const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
 
 // Create a single MongoDB client instance
 let client;
@@ -21,7 +21,7 @@ export async function connectToDatabase() {
 async function fetchCongressionalRecords( retries = 3 ) {
     for ( let i = 0; i < retries; i++ ) {
         try {
-            const response = await axios.get( `https://api.congress.gov/v3/daily-congressional-record?api_key=${ NEXT_PUBLIC_CONGRESS_API_KEY }`, {
+            const response = await axios.get( `https://api.congress.gov/v3/daily-congressional-record?api_key=${ CONGRESS_API_KEY }`, {
                 params: {
                     format: 'json',
                     limit: 250,
@@ -37,7 +37,7 @@ async function fetchCongressionalRecords( retries = 3 ) {
             // Fetch full contents for each report & include the API key in stored URL
             const reports = await Promise.all( response.data.dailyCongressionalRecord.map( async ( record ) => {
                 try {
-                    const reportUrl = `${ record.url }&api_key=${ NEXT_PUBLIC_CONGRESS_API_KEY }`; // Ensure stored URL has the key
+                    const reportUrl = `${ record.url }&api_key=${ CONGRESS_API_KEY }`; // Ensure stored URL has the key
 
                     const reportResponse = await axios.get( reportUrl, {
                         headers: { 'Accept': 'application/json' }

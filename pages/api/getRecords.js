@@ -30,7 +30,7 @@ export default async function handler( req, res ) {
 
         const updatedRecords = records.map( record => ( {
             ...record,
-            url: `${ record.url }&api_key=${ process.env.NEXT_PUBLIC_CONGRESS_API_KEY }`
+            url: `${ record.url }&api_key=${ process.env.CONGRESS_API_KEY }`
         } ) );
         res.status( 200 ).json( { success: true, data: updatedRecords } );
     } catch ( error ) {

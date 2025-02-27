@@ -5,11 +5,11 @@ import axios from 'axios';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DATABASE_NAME = 'congressionalSummaries';
 const COLLECTION_NAME = 'summaries';
-const NEXT_PUBLIC_CONGRESS_API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY;
+const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
 
 export async function fetchCongressionalRecords() {
     try {
-        const response = await axios.get( `https://api.congress.gov/v3/daily-congressional-record?api_key=${ NEXT_PUBLIC_CONGRESS_API_KEY }`, {
+        const response = await axios.get( `https://api.congress.gov/v3/daily-congressional-record?api_key=${ CONGRESS_API_KEY }`, {
             params: {
                 format: 'json',
                 limit: 250,
