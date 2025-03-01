@@ -54,7 +54,7 @@ export default async function handler( req, res ) {
             temperature: 0.4,
             messages: [ {
                 role: "system",
-                content: "Summarize the following congressional record, including all topics discussed. Identify key points, summarize arguments made, and highlight any controversial views or speeches that go against the concept of America and the democracy found within, specifying who expressed them."
+                content: "Summarize the following congressional record, including all topics discussed. Identify key points, summarize arguments made, and highlight any controversial views or speeches that would be considered working against or misaligned with the task of advancing the prosperity of America as a whole; or anti-democracy; specifying who expressed them."
             },
             { role: "user", content: textContent }
             ],
