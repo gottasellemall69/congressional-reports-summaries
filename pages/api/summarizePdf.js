@@ -54,11 +54,11 @@ export default async function handler( req, res ) {
             temperature: 0.4,
             messages: [ {
                 role: "system",
-                content: "Summarize the following congressional record, including all topics discussed. Identify key points, summarize arguments made, and highlight any controversial views, specifying who expressed them."
+                content: "Summarize the following congressional record, including all topics discussed. Identify key points, summarize arguments made, and highlight any controversial views or speeches that go against the concept of America and the democracy found within, specifying who expressed them."
             },
             { role: "user", content: textContent }
             ],
-            max_completion_tokens: 1200
+            max_completion_tokens: 4096
         } );
 
         const summary = completion.choices[ 0 ].message.content;

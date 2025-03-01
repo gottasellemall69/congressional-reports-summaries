@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { FileText, Calendar, RefreshCw, ExternalLink } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 export default function Home() {
   const [ records, setRecords ] = useState( [] );
@@ -62,7 +63,7 @@ export default function Home() {
               return (
                 <div key={ record?.issueNumber } className="bg-black p-6 shadow rounded-lg">
                   <h2 className="text-xl font-semibold">Vol. { record.volumeNumber }, Issue { record.issueNumber }</h2>
-                  <p>{ new Date( record.issueDate ).toDateString() }</p>
+                  <p>{ format( parseISO( record.issueDate ), "MM-dd-yyyy" ) } {/* Formats correctly */ }</p>
 
                   <div className="mt-4 flex gap-4">
                     <a href={ pdfUrl } target="_blank" rel="noopener noreferrer" className="text-blue-600 flex items-center">
