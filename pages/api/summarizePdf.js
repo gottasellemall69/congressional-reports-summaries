@@ -46,7 +46,7 @@ export default async function handler( req, res ) {
 
         // Extract text from PDF
         const data = await pdf( pdfBuffer );
-        const textContent = data.text.substring( 0, 5000 ); // Limit to avoid high token costs
+        const textContent = data.text.substring( 0, 4000 ); // Limit to avoid high token costs
 
         // Use GPT-3.5 Turbo to summarize
         const completion = await openai.chat.completions.create( {
@@ -54,11 +54,11 @@ export default async function handler( req, res ) {
             temperature: 0.4,
             messages: [ {
                 role: "system",
-                content: "Summarize the following congressional record, including all topics discussed. Identify key points, summarize arguments made, and highlight any controversial views or speeches that would be considered working against or misaligned with the task of advancing the prosperity of America as a whole; or anti-democracy; specifying who expressed them."
+                content: "Summarize the following congressional record, including all topics discussed. Describe who was speaking and as to what they were saying and the points they made. Identify key points, summarize arguments made, and highlight any controversial views or speeches that would be considered working against or misaligned with the task of advancing the prosperity of America as a whole; or anti-democracy; specifying who expressed them."
             },
             { role: "user", content: textContent }
             ],
-            max_completion_tokens: 4096
+            max_completion_tokens: 1096
         } );
 
         const summary = completion.choices[ 0 ].message.content;

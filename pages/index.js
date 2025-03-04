@@ -58,10 +58,10 @@ export default function Home() {
           <p className="text-red-500">{ error }</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 flex-wrap mx-auto gap-6">
-            { records.map( ( record ) => {
+            { records.map( ( record, index ) => {
               const pdfUrl = record.contents?.issue?.fullIssue?.entireIssue?.[ 0 ]?.url;
               return (
-                <div key={ record?.issueNumber } className="bg-black p-6 shadow rounded-lg">
+                <div key={ `${ record.issueNumber }-${ index }` } className="bg-black p-6 shadow rounded-lg">
                   <h2 className="text-xl font-semibold">Vol. { record.volumeNumber }, Issue { record.issueNumber }</h2>
                   <p>{ format( parseISO( record.issueDate ), "MM-dd-yyyy" ) } {/* Formats correctly */ }</p>
 
