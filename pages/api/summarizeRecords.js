@@ -12,7 +12,7 @@ let client;
 
 export async function connectToDatabase() {
     if ( !client ) {
-        client = new MongoClient( MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true } );
+        client = new MongoClient( MONGODB_URI );
         await client.connect();
     }
     return client.db( DATABASE_NAME );
@@ -27,7 +27,7 @@ async function fetchCongressionalRecords( retries = 3 ) {
                     limit: 250,
                     offset: 0
                 },
-                headers: { 'Accept': 'application/json' }
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
             } );
 
             if ( !response.data?.dailyCongressionalRecord ) {
@@ -40,7 +40,7 @@ async function fetchCongressionalRecords( retries = 3 ) {
                     const reportUrl = `${ record.url }&api_key=${ CONGRESS_API_KEY }`; // Ensure stored URL has the key
 
                     const reportResponse = await axios.get( reportUrl, {
-                        headers: { 'Accept': 'application/json' }
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
                     } );
 
                     return {

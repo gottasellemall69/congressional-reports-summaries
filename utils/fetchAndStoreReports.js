@@ -16,7 +16,8 @@ export async function fetchCongressionalRecords() {
                 offset: 0
             },
             headers: {
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
             }
         } );
 

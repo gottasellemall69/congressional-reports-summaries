@@ -54,7 +54,7 @@ export default async function handler( req, res ) {
             temperature: 0.4,
             messages: [ {
                 role: "system",
-                content: "Summarize the following congressional record, including all topics discussed. Describe who was speaking and as to what they were saying and the points they made. Identify key points, summarize arguments made, and highlight any controversial views or speeches that would be considered working against or misaligned with the task of advancing the prosperity of America as a whole; or anti-democracy; specifying who expressed them."
+                content: "Summarize the following congressional record, including all topics discussed. For each section of the record format your response into paragraphs, and describe who was speaking and highlight each of the main points that speaker made. List the name of any new bills or resolutions passed, and if available, briefly describe the purpose of the bill or resolution. If any debates or speeches are made that could be seen as controversial or may work against the prosperity of the citizens of the United States of America, identify what was said and by whom."
             },
             { role: "user", content: textContent }
             ],
