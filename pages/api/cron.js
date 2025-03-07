@@ -1,4 +1,4 @@
-import fetchAndStoreRecords from "@/utils/fetchAndStoreReports";
+import fetchAndStoreRecords from "@/pages/api/summarizeRecords";
 
 export default async function handler( req, res ) {
     if ( req.method !== "GET" ) {

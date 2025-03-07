@@ -46,7 +46,7 @@ export default async function handler( req, res ) {
 
         // Extract text from PDF
         const data = await pdf( pdfBuffer );
-        const textContent = data.text.substring( 0, 4000 ); // Limit to avoid high token costs
+        const textContent = data.text.substring( 0, 15000 ); // Limit to avoid high token costs
 
         // Use GPT-3.5 Turbo to summarize
         const completion = await openai.chat.completions.create( {
