@@ -46,7 +46,7 @@ export default async function handler( req, res ) {
 
         // Extract text from PDF
         const data = await pdf( pdfBuffer );
-        const textContent = data.text.substring( 0, 20000 ); // Limit to avoid high token costs
+        const textContent = data.text.substring( 0, 40099 ); // Limit to avoid high token costs
 
         // Use GPT-3.5 Turbo to summarize
         const completion = await openai.chat.completions.create( {
@@ -58,7 +58,7 @@ export default async function handler( req, res ) {
             },
             { role: "user", content: textContent }
             ],
-            max_completion_tokens: 1096
+            max_completion_tokens: 2000
         } );
 
         const summary = completion.choices[ 0 ].message.content;
