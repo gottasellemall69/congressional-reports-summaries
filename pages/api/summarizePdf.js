@@ -46,19 +46,19 @@ export default async function handler( req, res ) {
 
         // Extract text from PDF
         const data = await pdf( pdfBuffer );
-        const textContent = data.text.substring( 0, 40099 ); // Limit to avoid high token costs
+        const textContent = data.text; // Limit to avoid high token costs
 
         // Use GPT-3.5 Turbo to summarize
         const completion = await openai.chat.completions.create( {
-            model: "gpt-3.5-turbo",
+            model: "gpt-4.1-nano",
             temperature: 0.4,
             messages: [ {
                 role: "system",
-                content: "Summarize the following congressional record, including all topics discussed. For each section of the record format your response into paragraphs. After each paragraph (about 5-7 sentences), add a new line that is blank, and then start the next paragraph underneath the blank line in order to make it easier for the user to read. When a speaker is newly introduced in the summary, indicate what party they belong to by adding either a (D) for Democrat or (R) for Republican at the end of their name and describe who was speaking and highlight each of the main points that speaker made. List the name of any new bills or resolutions passed. If any resolutions or bills are passed, describe the contents (if possible) of the bill or resolution and the implications of the bill or resolution.. If any debates or speeches are made that could be seen as controversial or may work against the prosperity of the citizens of the United States of America, identify what was said and by whom."
+                content: "Summarize the following congressional record, including all topics discussed. For each section of the record format your response into paragraphs. After each paragraph (about 5-7 sentences), add a new line that is blank, another new line to split into the next paragraph, and then start the next paragraph underneath the blank line in order to make it easier for the user to read. When a speaker is newly introduced in the summary, indicate what party they belong to by adding either a (D) for Democrat or (R) for Republican at the end of their name and describe who was speaking and highlight each of the main points that speaker made. List the name of any new bills or resolutions passed. If any resolutions or bills are passed, describe the contents (if possible) of the bill or resolution and the implications of the bill or resolution.. If any debates or speeches are made that could be seen as controversial or may work against the prosperity of the citizens of the United States of America, identify what was said and by whom."
             },
             { role: "user", content: textContent }
             ],
-            max_completion_tokens: 2000
+
         } );
 
         const summary = completion.choices[ 0 ].message.content;
