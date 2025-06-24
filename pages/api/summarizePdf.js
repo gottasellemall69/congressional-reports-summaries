@@ -67,7 +67,7 @@ export default async function handler( req, res ) {
         }
 
         // Validate the PDF URL
-        const allowedDomains = [ "trustedsource.com", "anothertrustedsource.org" ];
+        const allowedDomains = [ "api.congress.gov", "congressional-reports-summaries.vercel.app" ];
         try {
             const parsedUrl = new URL( pdfUrl );
             if ( !allowedDomains.includes( parsedUrl.hostname ) ) {
