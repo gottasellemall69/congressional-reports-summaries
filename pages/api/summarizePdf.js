@@ -61,6 +61,11 @@ export default async function handler( req, res ) {
             return res.status( 400 ).json( { error: "Missing PDF URL or Issue Number" } );
         }
 
+        // Validate issueNumber
+        if ( typeof issueNumber !== "string" && typeof issueNumber !== "number" ) {
+            return res.status( 400 ).json( { error: "Invalid Issue Number format" } );
+        }
+
         // Validate the PDF URL
         const allowedDomains = [ "trustedsource.com", "anothertrustedsource.org" ];
         try {
