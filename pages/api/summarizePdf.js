@@ -61,6 +61,17 @@ export default async function handler( req, res ) {
             return res.status( 400 ).json( { error: "Missing PDF URL or Issue Number" } );
         }
 
+        // Validate the PDF URL
+        const allowedDomains = [ "trustedsource.com", "anothertrustedsource.org" ];
+        try {
+            const parsedUrl = new URL( pdfUrl );
+            if ( !allowedDomains.includes( parsedUrl.hostname ) ) {
+                return res.status( 400 ).json( { error: "Invalid PDF URL domain" } );
+            }
+        } catch ( error ) {
+            return res.status( 400 ).json( { error: "Invalid PDF URL format" } );
+        }
+
         const db = await connectToDatabase();
         const collection = db.collection( COLLECTION_NAME );
         const chunkCollection = db.collection( CHUNK_COLLECTION );
