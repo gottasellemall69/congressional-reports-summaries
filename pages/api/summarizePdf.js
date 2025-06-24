@@ -6,6 +6,7 @@ import { MongoClient } from "mongodb";
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const DATABASE_NAME = "congressionalSummaries";
 const COLLECTION_NAME = "summaries";
+const CHUNK_COLLECTION = "chunkSummaries";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const openai = new OpenAI( { apiKey: OPENAI_API_KEY } );
@@ -14,6 +15,39 @@ async function connectToDatabase() {
     const client = new MongoClient( MONGODB_URI );
     await client.connect();
     return client.db( DATABASE_NAME );
+}
+
+function splitIntoChunks( text, maxWords = 10000 ) {
+    const words = text.split( /\s+/ );
+    const chunks = [];
+
+    for ( let i = 0; i < words.length; i += maxWords ) {
+        chunks.push( words.slice( i, i + maxWords ).join( " " ) );
+    }
+
+    return chunks;
+}
+
+async function summarizeChunk( chunk, chunkIndex ) {
+    const response = await openai.chat.completions.create( {
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        messages: [
+            {
+                role: "system",
+                content: "You are an expert political analyst tasked with summarizing a section of the official U.S. Congressional Record. Summarize the entire contents of the provided text, including full remarks made by each speaker. Be sure to: Identify and name each speaker when they begin speaking. Include party affiliation by appending (D) for Democrat or (R) for Republican after their name. Capture and explain the key arguments, themes, and rhetorical points made by each speaker, preserving the intent and tone of their statements. Do not omit or paraphrase away the core content of any speech—summarize completely and clearly. If any bills, resolutions, or motions are introduced or passed, be sure to: Clearly name the bill/resolution. Describe its contents and intended effects in plain language. Explain the implications of the bill, especially if debated. If any controversial statements, debates, or points of tension arise, highlight: Who said what The context and significance of the remarks Any possible public or political impact Formatting Instructions: Write in paragraphs of 5–7 sentences each Separate each paragraph with <br /> followed by two line breaks Use clear transitions between topics or speakers Your goal is to create an accurate, readable summary that makes complex legislative discussions easy to follow while preserving factual detail."
+            },
+            {
+                role: "user",
+                content: chunk
+            }
+        ]
+    } );
+
+    return {
+        index: chunkIndex,
+        content: response.choices[ 0 ].message.content
+    };
 }
 
 export default async function handler( req, res ) {
@@ -29,50 +63,70 @@ export default async function handler( req, res ) {
 
         const db = await connectToDatabase();
         const collection = db.collection( COLLECTION_NAME );
+        const chunkCollection = db.collection( CHUNK_COLLECTION );
 
-        // ✅ Check if a summary already exists in MongoDB
+        // ✅ Check for full cached summary
         const existingSummary = await collection.findOne( { issueNumber } );
         if ( existingSummary && existingSummary.summary ) {
-            console.log( `📌 Using cached summary for Issue ${ issueNumber }` );
+            console.log( `📌 Using cached full summary for Issue ${ issueNumber }` );
             return res.status( 200 ).json( { summary: existingSummary.summary } );
         }
 
-        // ❗ No summary found → Fetch PDF and summarize
-        console.log( `⏳ Generating new summary for Issue ${ issueNumber }` );
-
-        // Download PDF
+        // ❌ No full summary → process PDF
+        console.log( `⏳ Downloading and parsing PDF for Issue ${ issueNumber }` );
         const pdfResponse = await axios.get( pdfUrl, { responseType: "arraybuffer" } );
         const pdfBuffer = Buffer.from( pdfResponse.data );
-
-        // Extract text from PDF
         const data = await pdf( pdfBuffer );
-        const textContent = data.text; // Limit to avoid high token costs
+        const textContent = data.text;
+        const chunks = splitIntoChunks( textContent );
 
-        // Use GPT-3.5 Turbo to summarize
-        const completion = await openai.chat.completions.create( {
-            model: "gpt-4.1-nano",
-            temperature: 0.4,
-            messages: [ {
-                role: "system",
-                content: "Summarize the following congressional record, including all topics discussed. For each section of the record format your response into paragraphs. After each paragraph (about 5-7 sentences), add a new line break (<br />), another new line break into the next paragraph, and then start the next paragraph underneath the line break in order to make it easier for the user to read. When a speaker is newly introduced in the summary, indicate what party they belong to by adding either a (D) for Democrat or (R) for Republican at the end of their name and describe who was speaking and highlight each of the main points that speaker made. List the name of any new bills or resolutions passed. If any resolutions or bills are passed, describe the contents (if possible) of the bill or resolution and the implications of the bill or resolution.. If any debates or speeches are made that could be seen as controversial or may work against the prosperity of the citizens of the United States of America, identify what was said and by whom."
-            },
-            { role: "user", content: textContent }
-            ],
+        const chunkSummaries = [];
 
-        } );
+        for ( let i = 0; i < chunks.length; i++ ) {
+            const chunkText = chunks[ i ];
 
-        const summary = completion.choices[ 0 ].message.content;
+            // ✅ Check if this chunk was summarized before
+            const cachedChunk = await chunkCollection.findOne( { issueNumber, chunkIndex: i } );
+            if ( cachedChunk && cachedChunk.summary ) {
+                console.log( `⚡ Using cached chunk ${ i }` );
+                chunkSummaries.push( { index: i, content: cachedChunk.summary } );
+                continue;
+            }
 
-        // ✅ Store the new summary in MongoDB to prevent repeated API calls
+            // ❗ Summarize chunk
+            console.log( `✍️ Summarizing chunk ${ i + 1 } / ${ chunks.length }` );
+            const result = await summarizeChunk( chunkText, i );
+
+            // ✅ Cache chunk summary
+            await chunkCollection.updateOne(
+                { issueNumber, chunkIndex: i },
+                { $set: { issueNumber, chunkIndex: i, summary: result.content } },
+                { upsert: true }
+            );
+
+            chunkSummaries.push( result );
+        }
+
+        // 🧠 Reconstruct full summary in order
+        chunkSummaries.sort( ( a, b ) => a.index - b.index );
+        const fullSummary = chunkSummaries.map( ( chunk ) => chunk.content ).join( "\n\n" );
+
+        // ✅ Save full summary to main collection
         await collection.updateOne(
             { issueNumber },
-            { $set: { summary, issueNumber, pdfUrl } },
+            { $set: { issueNumber, pdfUrl, summary: fullSummary } },
             { upsert: true }
         );
 
-        res.status( 200 ).json( { summary } );
+        return res.status( 200 ).json( { summary: fullSummary } );
     } catch ( error ) {
-        console.error( "❌ Error summarizing PDF:", error.message );
-        res.status( 500 ).json( { error: "Failed to summarize PDF" } );
+        console.error( "❌ Error in summary handler:", error.message );
+        return res.status( 500 ).json( { error: "Failed to summarize PDF" } );
     }
 }
+
+
+
+
+
+

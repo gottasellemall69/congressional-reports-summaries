@@ -85,7 +85,7 @@ export default function Home() {
       </main>
 
       { selectedSummary && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-wrap top-48 items-center max-h-[70%] justify-center overflow-y-scroll leading-5 text-pretty">
+        <div className="inset-0 bg-black mx-auto fixed bg-opacity-90 flex flex-wrap items-center h-full justify-center overflow-y-auto leading-7 text-pretty">
           <div className="bg-black p-6 rounded-lg max-w-2xl">
             <h2 className="text-xl font-semibold mb-4">Summary</h2>
             <p>{ selectedSummary }</p>
