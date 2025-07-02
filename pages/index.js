@@ -85,10 +85,10 @@ export default function Home() {
       </main>
 
       { selectedSummary && (
-        <div className="inset-0 bg-black mx-auto fixed bg-opacity-90 flex flex-wrap items-center h-full justify-center overflow-y-auto leading-7 text-pretty">
-          <div className="bg-black p-6 rounded-lg max-w-2xl">
+        <div className="inset-0 bg-black mx-auto fixed bg-opacity-90 flex flex-wrap items-center h-full justify-center overflow-y-auto">
+          <div className="bg-black p-6 rounded-lg w-full max-w-5xl">
             <h2 className="text-xl font-semibold mb-4">Summary</h2>
-            <p>{ selectedSummary }</p>
+            <p className='text-base leading-7 text-pretty'>{ selectedSummary }</p>
             <button onClick={ () => setSelectedSummary( null ) } className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md">
               Close
             </button>

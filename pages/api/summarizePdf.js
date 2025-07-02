@@ -7,9 +7,8 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const DATABASE_NAME = "congressionalSummaries";
 const COLLECTION_NAME = "summaries";
 const CHUNK_COLLECTION = "chunkSummaries";
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const openai = new OpenAI( { apiKey: OPENAI_API_KEY } );
+const openai = new OpenAI( { apiKey: process.env.OPENAI_API_KEY } );
 
 async function connectToDatabase() {
     const client = new MongoClient( MONGODB_URI );
@@ -17,7 +16,7 @@ async function connectToDatabase() {
     return client.db( DATABASE_NAME );
 }
 
-function splitIntoChunks( text, maxWords = 10000 ) {
+function splitIntoChunks( text, maxWords = 20000 ) {
     const words = text.split( /\s+/ );
     const chunks = [];
 
