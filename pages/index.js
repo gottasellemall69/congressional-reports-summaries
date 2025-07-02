@@ -53,7 +53,7 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         { loading ? (
-          <p>Loading...</p>
+          <p className='text-black font-semibold text-center mx-auto mt-12'>Loading...</p>
         ) : error ? (
           <p className="text-red-500">{ error }</p>
         ) : (
