@@ -19,11 +19,9 @@ async function connectToDatabase() {
 function splitIntoChunks( text, maxWords = 20000 ) {
     const words = text.split( /\s+/ );
     const chunks = [];
-
     for ( let i = 0; i < words.length; i += maxWords ) {
         chunks.push( words.slice( i, i + maxWords ).join( " " ) );
     }
-
     return chunks;
 }
 
@@ -34,7 +32,7 @@ async function summarizeChunk( chunk, chunkIndex ) {
         messages: [
             {
                 role: "system",
-                content: "You are an expert political analyst tasked with summarizing a section of the official U.S. Congressional Record. Summarize the entire contents of the provided text, including full remarks made by each speaker. Be sure to: Identify and name each speaker when they begin speaking. Include party affiliation by appending (D) for Democrat or (R) for Republican after their name. Capture and explain the key arguments, themes, and rhetorical points made by each speaker, preserving the intent and tone of their statements. Do not omit or paraphrase away the core content of any speech—summarize completely and clearly. If any bills, resolutions, or motions are introduced or passed, be sure to: Clearly name the bill/resolution. Describe its contents and intended effects in plain language. Explain the implications of the bill, especially if debated. If any controversial statements, debates, or points of tension arise, highlight: Who said what The context and significance of the remarks Any possible public or political impact Formatting Instructions: Write in paragraphs of 5–7 sentences each Separate each paragraph with a blank line followed after each paragraph for visual clarity and to make it easier to read. Use clear transitions between topics or speakers, with a bolded header title for each new section. Your goal is to create an accurate, readable summary that makes complex legislative discussions easy to follow while preserving factual detail."
+                content: `Return your response in Markdown. You are an expert political analyst tasked with summarizing a section of the official U.S. Congressional Record. Summarize the entire contents of the provided text, including full remarks made by each speaker. Be sure to: Identify and name each speaker when they begin speaking. Include party affiliation by appending (D) for Democrat or (R) for Republican after their name. Capture and explain the key arguments, themes, and rhetorical points made by each speaker, preserving the intent and tone of their statements. Do not omit or paraphrase away the core content of any speech—summarize completely and clearly. If any bills, resolutions, or motions are introduced or passed, be sure to: Clearly name the bill/resolution. Describe its contents and intended effects in plain language. Explain the implications of the bill, especially if debated. If any controversial statements, debates, or points of tension arise, highlight: Who said what, the context and significance of the remarks, any possible public or political impact of the bill. Formatting Instructions: Write in paragraphs of 5 to 7 sentences each. Separate each paragraph with a line break ("\n") like "Section 1\nSection 2\nSection 3" followed after each paragraph for visual clarity and to make it easier to read. Use clear transitions between topics or speakers, with a bolded header title for each new section. Your goal is to create an accurate, readable summary that makes complex legislative discussions easy to follow while preserving factual detail.`
             },
             {
                 role: "user",
@@ -60,26 +58,16 @@ export default async function handler( req, res ) {
             return res.status( 400 ).json( { error: "Missing PDF URL or Issue Number" } );
         }
 
-        // Validate issueNumber
-        if ( typeof issueNumber !== "string" && typeof issueNumber !== "number" ) {
-            return res.status( 400 ).json( { error: "Invalid Issue Number format" } );
-        }
-
-        // Validate the PDF URL
-
         const db = await connectToDatabase();
         const collection = db.collection( COLLECTION_NAME );
         const chunkCollection = db.collection( CHUNK_COLLECTION );
 
-        // ✅ Check for full cached summary
         const existingSummary = await collection.findOne( { issueNumber } );
-        if ( existingSummary && existingSummary.summary ) {
-            console.log( `📌 Using cached full summary for Issue ${ issueNumber }` );
-            return res.status( 200 ).json( { summary: existingSummary.summary } );
+        if ( existingSummary?.summary ) {
+            res.setHeader( "Content-Type", "application/json" );
+            return res.end( JSON.stringify( { summary: existingSummary.summary } ) );
         }
 
-        // ❌ No full summary → process PDF
-        console.log( `⏳ Downloading and parsing PDF for Issue ${ issueNumber }` );
         const pdfResponse = await axios.get( pdfUrl, { responseType: "arraybuffer" } );
         const pdfBuffer = Buffer.from( pdfResponse.data );
         const data = await pdf( pdfBuffer );
@@ -88,51 +76,61 @@ export default async function handler( req, res ) {
 
         const chunkSummaries = [];
 
+        // Set headers for streaming response
+        res.setHeader( "Content-Type", "application/json; charset=utf-8" );
+        res.setHeader( "Transfer-Encoding", "chunked" );
+        res.write( `{"totalChunks": ${ chunks.length }, "chunks":[\n` );
+
+
         for ( let i = 0; i < chunks.length; i++ ) {
             const chunkText = chunks[ i ];
 
-            // ✅ Check if this chunk was summarized before
+            // Cached summary
             const cachedChunk = await chunkCollection.findOne( { issueNumber, chunkIndex: i } );
-            if ( cachedChunk && cachedChunk.summary ) {
+            let summaryText;
+            if ( cachedChunk?.summary ) {
                 console.log( `⚡ Using cached chunk ${ i }` );
-                chunkSummaries.push( { index: i, content: cachedChunk.summary } );
-                continue;
+                summaryText = cachedChunk.summary;
+            } else {
+                console.log( `✍️ Summarizing chunk ${ i + 1 } / ${ chunks.length }` );
+                const result = await summarizeChunk( chunkText, i );
+                summaryText = result.content;
+
+                await chunkCollection.updateOne(
+                    { issueNumber, chunkIndex: i },
+                    { $set: { issueNumber, chunkIndex: i, summary: summaryText } },
+                    { upsert: true }
+                );
             }
 
-            // ❗ Summarize chunk
-            console.log( `✍️ Summarizing chunk ${ i + 1 } / ${ chunks.length }` );
-            const result = await summarizeChunk( chunkText, i );
+            chunkSummaries.push( { index: i, content: summaryText } );
 
-            // ✅ Cache chunk summary
-            await chunkCollection.updateOne(
-                { issueNumber, chunkIndex: i },
-                { $set: { issueNumber, chunkIndex: i, summary: result.content } },
-                { upsert: true }
-            );
-
-            chunkSummaries.push( result );
+            const chunkJson = JSON.stringify( { index: i, content: summaryText } );
+            res.write( `${ i > 0 ? "," : "" }${ chunkJson }\n` );
         }
 
-        // 🧠 Reconstruct full summary in order
-        chunkSummaries.sort( ( a, b ) => a.index - b.index );
-        const fullSummary = chunkSummaries.map( ( chunk ) => chunk.content ).join( "\n\n" );
+        res.write( `], "summary":` );
 
-        // ✅ Save full summary to main collection
+        // Assemble full summary
+        chunkSummaries.sort( ( a, b ) => a.index - b.index );
+        const fullSummary = chunkSummaries.map( ( c ) => c.content ).join( "\n\n" );
+
         await collection.updateOne(
             { issueNumber },
             { $set: { issueNumber, pdfUrl, summary: fullSummary } },
             { upsert: true }
         );
 
-        return res.status( 200 ).json( { summary: fullSummary } );
+        res.write( JSON.stringify( fullSummary ) );
+        res.write( "}" );
+        res.end();
     } catch ( error ) {
         console.error( "❌ Error in summary handler:", error.message );
-        return res.status( 500 ).json( { error: "Failed to summarize PDF" } );
+        if ( !res.headersSent ) {
+            res.status( 500 ).json( { error: "Failed to summarize PDF" } );
+        } else {
+            res.write( `], "error": ${ JSON.stringify( error.message ) }}` );
+            res.end();
+        }
     }
 }
-
-
-
-
-
-

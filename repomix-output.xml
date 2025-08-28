@@ -1,0 +1,914 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+.gitattributes
+.github/dependabot.yml
+.gitignore
+eslint.config.js
+jsconfig.json
+next.config.js
+package.json
+pages/_app.js
+pages/_document.js
+pages/api/cron.js
+pages/api/getRecords.js
+pages/api/summarizePdf.js
+pages/api/summarizeRecords.js
+pages/index.js
+postcss.config.mjs
+public/file.svg
+public/globe.svg
+public/next.svg
+public/vercel.svg
+public/window.svg
+styles/globals.css
+tailwind.config.mjs
+utils/fetchAndStoreReports.js
+vercel.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitattributes">
+# Auto detect text files and perform LF normalization
+* text=auto
+</file>
+
+<file path=".github/dependabot.yml">
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "npm" # See documentation for possible values
+    directory: "/" # Location of package manifests
+    schedule:
+      interval: "weekly"
+</file>
+
+<file path="eslint.config.js">
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [...compat.extends("next/core-web-vitals")];
+
+export default eslintConfig;
+</file>
+
+<file path="jsconfig.json">
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
+</file>
+
+<file path="next.config.js">
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+};
+
+export default nextConfig;
+</file>
+
+<file path="pages/_app.js">
+import "@/styles/globals.css";
+
+export default function App({ Component, pageProps }) {
+  return <Component {...pageProps} />;
+}
+</file>
+
+<file path="pages/_document.js">
+import { Html, Head, Main, NextScript } from "next/document";
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head />
+      <body className="antialiased">
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}
+</file>
+
+<file path="postcss.config.mjs">
+/** @type {import('postcss-load-config').Config} */
+const config = {
+  plugins: {
+    tailwindcss: {},
+  },
+};
+
+export default config;
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="styles/globals.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+</file>
+
+<file path="tailwind.config.mjs">
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+      },
+    },
+  },
+  plugins: [],
+};
+</file>
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Directory for instrumented libs generated by jscoverage/JSCover
+lib-cov
+
+# Coverage directory used by tools like istanbul
+coverage
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Snowpack dependency directory (https://snowpack.dev/)
+web_modules/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+out
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+# Comment in the public line in if your project uses Gatsby and not Next.js
+# https://nextjs.org/blog/next-9-1#public-directory-support
+# public
+
+# vuepress build output
+.vuepress/dist
+
+# vuepress v2.x temp and cache directory
+.temp
+.cache
+
+# Docusaurus cache and generated files
+.docusaurus
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+repomix-output.txt
+</file>
+
+<file path="pages/api/cron.js">
+import fetchAndStoreRecords from "@/pages/api/summarizeRecords";
+
+export default async function handler( req, res ) {
+    if ( req.method !== "GET" ) {
+        return res.status( 405 ).end( "Method Not Allowed" );
+    }
+
+    // Verify CRON_SECRET to prevent unauthorized access
+    if ( req.headers.authorization !== `Bearer ${ process.env.CRON_SECRET }` ) {
+        return res.status( 401 ).end( "Unauthorized" );
+    }
+
+    try {
+        console.log( "🚀 Running Vercel Cron Job: Fetching congressional reports..." );
+        await fetchAndStoreRecords();
+        return res.status( 200 ).json( { success: true, message: "Reports fetched successfully" } );
+    } catch ( error ) {
+        console.error( "❌ Error in cron job:", error );
+        return res.status( 500 ).json( { success: false, error: error.message } );
+    }
+}
+</file>
+
+<file path="vercel.json">
+{
+    "crons": [{
+      "path": "/api/cron",
+      "schedule": "0 0 * * *"
+    }]
+  }
+</file>
+
+<file path="pages/api/getRecords.js">
+import { MongoClient } from 'mongodb';
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const DATABASE_NAME = 'congressionalSummaries';
+const COLLECTION_NAME = 'summaries';
+
+let cachedClient = null;
+let cachedDb = null;
+
+export async function connectToDatabase() {
+    if ( cachedClient && cachedDb ) {
+        return { client: cachedClient, db: cachedDb };
+    }
+
+    const client = await MongoClient.connect( MONGODB_URI );
+    const db = client.db( DATABASE_NAME );
+
+    cachedClient = client;
+    cachedDb = db;
+    return { client, db };
+}
+
+export default async function handler( req, res ) {
+    try {
+        const { db } = await connectToDatabase();
+        console.log( "📌 Fetching records from MongoDB..." );
+
+        const records = await db
+            .collection( COLLECTION_NAME )
+            .find( {} )
+            .sort( { issueDate: -1 } ) // 👈 Sort by date DESC (newest first)
+            .toArray();
+
+        console.log( "✅ Fetched and sorted records:", records );
+
+        const updatedRecords = records.map( record => ( {
+            ...record,
+            url: `${ record.url }&api_key=${ process.env.CONGRESS_API_KEY }`
+        } ) );
+
+        res.status( 200 ).json( { success: true, data: updatedRecords } );
+    } catch ( error ) {
+        console.error( "❌ Error fetching records:", error );
+        res.status( 500 ).json( { success: false, message: "Error fetching records" } );
+    }
+}
+</file>
+
+<file path="pages/api/summarizeRecords.js">
+require( 'dotenv' ).config();
+const { MongoClient } = require( 'mongodb' );
+const axios = require( 'axios' );
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const DATABASE_NAME = 'congressionalSummaries';
+const COLLECTION_NAME = 'summaries';
+const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
+
+// Create a single MongoDB client instance
+let client;
+
+export async function connectToDatabase() {
+    if ( !client ) {
+        client = new MongoClient( MONGODB_URI );
+        await client.connect();
+    }
+    return client.db( DATABASE_NAME );
+}
+
+async function fetchCongressionalRecords( retries = 3 ) {
+    for ( let i = 0; i < retries; i++ ) {
+        try {
+            const response = await axios.get( `https://api.congress.gov/v3/daily-congressional-record?api_key=${ CONGRESS_API_KEY }`, {
+                params: {
+                    format: 'json',
+                    limit: 250,
+                    offset: 0
+                },
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+            } );
+
+            if ( !response.data?.dailyCongressionalRecord ) {
+                throw new Error( 'Invalid API response format' );
+            }
+
+            // Fetch full contents for each report & include the API key in stored URL
+            const reports = await Promise.all( response.data.dailyCongressionalRecord.map( async ( record ) => {
+                try {
+                    const reportUrl = `${ record.url }&api_key=${ CONGRESS_API_KEY }`; // Ensure stored URL has the key
+
+                    const reportResponse = await axios.get( reportUrl, {
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+                    } );
+
+                    return {
+                        congress: record.congress,
+                        issueDate: record.issueDate,
+                        issueNumber: record.issueNumber,
+                        sessionNumber: record.sessionNumber,
+                        updateDate: record.updateDate,
+                        url: reportUrl, // Store the API key-embedded URL
+                        volumeNumber: record.volumeNumber,
+                        fetchedAt: new Date(), // Timestamp
+                        contents: reportResponse.data // Store the full contents of the report
+                    };
+                } catch ( reportError ) {
+                    console.error( `Error fetching report contents from ${ record.url }:`, reportError.message );
+                    return null;
+                }
+            } ) );
+
+            return reports.filter( report => report !== null ); // Remove failed fetches
+        } catch ( error ) {
+            console.error( `Error fetching Congressional Records (attempt ${ i + 1 }):`, error.message );
+            if ( i === retries - 1 ) return [];
+            await new Promise( res => setTimeout( res, 2000 * Math.pow( 2, i ) ) ); // Exponential backoff
+        }
+    }
+}
+
+export async function storeRecordsInMongo( records ) {
+    if ( records.length === 0 ) {
+        console.log( 'No new records to store.' );
+        return;
+    }
+
+    const db = await connectToDatabase();
+    const collection = db.collection( COLLECTION_NAME );
+
+    // Use bulk operations to prevent duplicate checking inefficiency
+    const bulkOps = records.map( record => ( {
+        updateOne: {
+            filter: { issueNumber: record.issueNumber, volumeNumber: record.volumeNumber },
+            update: { $setOnInsert: record }, // Inserts only if it doesn't exist
+            upsert: true // Creates if not found
+        }
+    } ) );
+
+    try {
+        const result = await collection.bulkWrite( bulkOps );
+        console.log( `Inserted ${ result.upsertedCount } new records, ${ result.matchedCount } already existed.` );
+    } catch ( error ) {
+        console.error( 'Error storing records in MongoDB:', error.message );
+    }
+}
+
+export default async function fetchAndStoreRecords() {
+    const records = await fetchCongressionalRecords();
+    await storeRecordsInMongo( records );
+}
+
+// Run the function
+fetchAndStoreRecords()
+    .then( () => console.log( 'Congressional Record fetching complete.' ) )
+    .catch( err => console.error( 'Unexpected error:', err ) );
+</file>
+
+<file path="utils/fetchAndStoreReports.js">
+import { MongoClient } from 'mongodb';
+import axios from 'axios';
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const DATABASE_NAME = 'congressionalSummaries';
+const COLLECTION_NAME = 'summaries';
+const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
+
+export async function fetchCongressionalRecords() {
+    try {
+        const response = await axios.get( `https://api.congress.gov/v3/daily-congressional-record?api_key=${ CONGRESS_API_KEY }`, {
+            params: {
+                format: 'json',
+                limit: 250,
+                offset: 0
+            },
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+        } );
+
+        if ( !response.data?.dailyCongressionalRecord ) {
+            throw new Error( 'Invalid API response format' );
+        }
+
+        // Format and filter the data
+        return response.data.dailyCongressionalRecord
+            .filter( record => record && typeof record === 'object' )
+            .map( record => ( {
+                congress: record.congress,
+                issueDate: record.issueDate,
+                issueNumber: record.issueNumber,
+                sessionNumber: record.sessionNumber,
+                updateDate: record.updateDate,
+                url: record.url,
+                volumeNumber: record.volumeNumber,
+                fetchedAt: new Date() // Timestamp for when the data was fetched
+            } ) );
+    } catch ( error ) {
+        console.error( 'Error fetching Congressional Records:', error.message );
+        return [];
+    }
+}
+
+export async function storeRecordsInMongo( records ) {
+    if ( records.length === 0 ) {
+        console.log( 'No new records to store.' );
+        return;
+    }
+
+    const client = new MongoClient( MONGODB_URI );
+
+    try {
+        await client.connect();
+        const db = client.db( DATABASE_NAME );
+        const collection = db.collection( COLLECTION_NAME );
+
+        // Insert records while avoiding duplicates
+        for ( const record of records ) {
+            const existingRecord = await collection.findOne( { issueNumber: record.issueNumber, volumeNumber: record.volumeNumber } );
+
+            if ( !existingRecord ) {
+                await collection.insertOne( record );
+                console.log( `Inserted record: Vol. ${ record.volumeNumber }, Issue ${ record.issueNumber }` );
+            } else {
+                console.log( `Record already exists: Vol. ${ record.volumeNumber }, Issue ${ record.issueNumber }` );
+            }
+        }
+    } catch ( error ) {
+        console.error( 'Error storing records in MongoDB:', error.message );
+    } finally {
+        await client.close();
+    }
+}
+
+export default async function fetchAndStoreRecords() {
+    const records = await fetchCongressionalRecords();
+    await storeRecordsInMongo( records );
+}
+
+// Run the function
+fetchAndStoreRecords()
+    .then( () => console.log( 'Congressional Record fetching complete.' ) )
+    .catch( err => console.error( 'Unexpected error:', err ) );
+</file>
+
+<file path="pages/index.js">
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { FileText, Calendar, RefreshCw, ExternalLink } from "lucide-react";
+import { format, parseISO } from "date-fns";
+
+export default function Home() {
+  const [ records, setRecords ] = useState( [] );
+  const [ loading, setLoading ] = useState( true );
+  const [ error, setError ] = useState( null );
+  const [ selectedSummary, setSelectedSummary ] = useState( null );
+  const [ loadingSummaries, setLoadingSummaries ] = useState( {} ); // Tracks which records are being summarized
+
+  useEffect( () => {
+    fetchRecords();
+  }, [] );
+
+  const fetchRecords = async () => {
+    setLoading( true );
+    try {
+      const response = await axios.get( "/api/getRecords" );
+      setRecords( response.data.data );
+    } catch ( err ) {
+      setError( "Failed to fetch congressional records." );
+    } finally {
+      setLoading( false );
+    }
+  };
+
+  const summarizePdf = async ( pdfUrl, issueNumber ) => {
+    setLoadingSummaries( ( prev ) => ( { ...prev, [ issueNumber ]: true } ) );
+
+    try {
+      const response = await axios.post( "/api/summarizePdf", { pdfUrl, issueNumber } );
+      setSelectedSummary( response.data.summary );
+    } catch ( err ) {
+      setSelectedSummary( "Failed to summarize this document." );
+    } finally {
+      setLoadingSummaries( ( prev ) => ( { ...prev, [ issueNumber ]: false } ) );
+    }
+  };
+
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-black shadow">
+        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between">
+          <h1 className="text-3xl font-bold">Congressional Record Daily</h1>
+          <button onClick={ fetchRecords } disabled={ loading } className="px-4 py-2 bg-blue-600 text-white rounded-md flex flex-row gap-2 text-nowrap">
+            <RefreshCw className={ loading ? "animate-spin" : "" } /> Refresh
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        { loading ? (
+          <p className='text-black font-semibold text-center mx-auto mt-12'>Loading...</p>
+        ) : error ? (
+          <p className="text-red-500">{ error }</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 flex-wrap mx-auto gap-6">
+            { records.map( ( record, index ) => {
+              const pdfUrl = record.contents?.issue?.fullIssue?.entireIssue?.[ 0 ]?.url;
+              return (
+                <div key={ `${ record.issueNumber }-${ index }` } className="bg-black p-6 shadow rounded-lg">
+                  <h2 className="text-xl font-semibold">Vol. { record.volumeNumber }, Issue { record.issueNumber }</h2>
+                  <p>{ format( parseISO( record.issueDate ), "MM-dd-yyyy" ) } {/* Formats correctly */ }</p>
+
+                  <div className="mt-4 flex gap-4">
+                    <a href={ pdfUrl } target="_blank" rel="noopener noreferrer" className="text-blue-600 flex items-center">
+                      View PDF <ExternalLink className="ml-1" />
+                    </a>
+                    <button
+                      onClick={ () => summarizePdf( pdfUrl, record.issueNumber ) }
+                      className="text-green-600 flex items-center"
+                      disabled={ loadingSummaries[ record.issueNumber ] } // Check if this specific issue is loading
+                    >
+                      { loadingSummaries[ record.issueNumber ] ? "Summarizing..." : "View Summary" }
+                    </button>
+                  </div>
+                </div>
+              );
+            } ) }
+          </div>
+        ) }
+      </main>
+
+      { selectedSummary && (
+        <div className="inset-0 bg-black mx-auto fixed bg-opacity-90 flex flex-wrap items-center h-full justify-center overflow-y-auto">
+          <div className="bg-black p-6 rounded-lg w-full max-w-5xl">
+            <h2 className="text-xl font-semibold mb-4">Summary</h2>
+            <p className='text-base leading-7 text-pretty'>{ selectedSummary }</p>
+            <button onClick={ () => setSelectedSummary( null ) } className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md">
+              Close
+            </button>
+          </div>
+        </div>
+      ) }
+    </div>
+  );
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "congressional-reports",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.5.0",
+    "lucide-react": "^0.479.0",
+    "mongodb": "^6.17.0",
+    "next": "^15.3.3",
+    "openai": "^5.6.0",
+    "pdf-parse": "^1.1.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "eslint": "^9.28.0",
+    "eslint-config-next": "15.2.1",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^3.4.17"
+  }
+}
+</file>
+
+<file path="pages/api/summarizePdf.js">
+import axios from "axios";
+import pdf from "pdf-parse";
+import OpenAI from "openai";
+import { MongoClient } from "mongodb";
+
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
+const DATABASE_NAME = "congressionalSummaries";
+const COLLECTION_NAME = "summaries";
+const CHUNK_COLLECTION = "chunkSummaries";
+
+const openai = new OpenAI( { apiKey: process.env.OPENAI_API_KEY } );
+
+async function connectToDatabase() {
+    const client = new MongoClient( MONGODB_URI );
+    await client.connect();
+    return client.db( DATABASE_NAME );
+}
+
+function splitIntoChunks( text, maxWords = 20000 ) {
+    const words = text.split( /\s+/ );
+    const chunks = [];
+
+    for ( let i = 0; i < words.length; i += maxWords ) {
+        chunks.push( words.slice( i, i + maxWords ).join( " " ) );
+    }
+
+    return chunks;
+}
+
+async function summarizeChunk( chunk, chunkIndex ) {
+    const response = await openai.chat.completions.create( {
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        messages: [
+            {
+                role: "system",
+                content: "You are an expert political analyst tasked with summarizing a section of the official U.S. Congressional Record. Summarize the entire contents of the provided text, including full remarks made by each speaker. Be sure to: Identify and name each speaker when they begin speaking. Include party affiliation by appending (D) for Democrat or (R) for Republican after their name. Capture and explain the key arguments, themes, and rhetorical points made by each speaker, preserving the intent and tone of their statements. Do not omit or paraphrase away the core content of any speech—summarize completely and clearly. If any bills, resolutions, or motions are introduced or passed, be sure to: Clearly name the bill/resolution. Describe its contents and intended effects in plain language. Explain the implications of the bill, especially if debated. If any controversial statements, debates, or points of tension arise, highlight: Who said what The context and significance of the remarks Any possible public or political impact Formatting Instructions: Write in paragraphs of 5–7 sentences each Separate each paragraph with a blank line followed after each paragraph for visual clarity and to make it easier to read. Use clear transitions between topics or speakers, with a bolded header title for each new section. Your goal is to create an accurate, readable summary that makes complex legislative discussions easy to follow while preserving factual detail."
+            },
+            {
+                role: "user",
+                content: chunk
+            }
+        ]
+    } );
+
+    return {
+        index: chunkIndex,
+        content: response.choices[ 0 ].message.content
+    };
+}
+
+export default async function handler( req, res ) {
+    if ( req.method !== "POST" ) {
+        return res.status( 405 ).json( { error: "Method not allowed" } );
+    }
+
+    try {
+        const { pdfUrl, issueNumber } = req.body;
+        if ( !pdfUrl || !issueNumber ) {
+            return res.status( 400 ).json( { error: "Missing PDF URL or Issue Number" } );
+        }
+
+        // Validate issueNumber
+        if ( typeof issueNumber !== "string" && typeof issueNumber !== "number" ) {
+            return res.status( 400 ).json( { error: "Invalid Issue Number format" } );
+        }
+
+        // Validate the PDF URL
+
+        const db = await connectToDatabase();
+        const collection = db.collection( COLLECTION_NAME );
+        const chunkCollection = db.collection( CHUNK_COLLECTION );
+
+        // ✅ Check for full cached summary
+        const existingSummary = await collection.findOne( { issueNumber } );
+        if ( existingSummary && existingSummary.summary ) {
+            console.log( `📌 Using cached full summary for Issue ${ issueNumber }` );
+            return res.status( 200 ).json( { summary: existingSummary.summary } );
+        }
+
+        // ❌ No full summary → process PDF
+        console.log( `⏳ Downloading and parsing PDF for Issue ${ issueNumber }` );
+        const pdfResponse = await axios.get( pdfUrl, { responseType: "arraybuffer" } );
+        const pdfBuffer = Buffer.from( pdfResponse.data );
+        const data = await pdf( pdfBuffer );
+        const textContent = data.text;
+        const chunks = splitIntoChunks( textContent );
+
+        const chunkSummaries = [];
+
+        for ( let i = 0; i < chunks.length; i++ ) {
+            const chunkText = chunks[ i ];
+
+            // ✅ Check if this chunk was summarized before
+            const cachedChunk = await chunkCollection.findOne( { issueNumber, chunkIndex: i } );
+            if ( cachedChunk && cachedChunk.summary ) {
+                console.log( `⚡ Using cached chunk ${ i }` );
+                chunkSummaries.push( { index: i, content: cachedChunk.summary } );
+                continue;
+            }
+
+            // ❗ Summarize chunk
+            console.log( `✍️ Summarizing chunk ${ i + 1 } / ${ chunks.length }` );
+            const result = await summarizeChunk( chunkText, i );
+
+            // ✅ Cache chunk summary
+            await chunkCollection.updateOne(
+                { issueNumber, chunkIndex: i },
+                { $set: { issueNumber, chunkIndex: i, summary: result.content } },
+                { upsert: true }
+            );
+
+            chunkSummaries.push( result );
+        }
+
+        // 🧠 Reconstruct full summary in order
+        chunkSummaries.sort( ( a, b ) => a.index - b.index );
+        const fullSummary = chunkSummaries.map( ( chunk ) => chunk.content ).join( "\n\n" );
+
+        // ✅ Save full summary to main collection
+        await collection.updateOne(
+            { issueNumber },
+            { $set: { issueNumber, pdfUrl, summary: fullSummary } },
+            { upsert: true }
+        );
+
+        return res.status( 200 ).json( { summary: fullSummary } );
+    } catch ( error ) {
+        console.error( "❌ Error in summary handler:", error.message );
+        return res.status( 500 ).json( { error: "Failed to summarize PDF" } );
+    }
+}
+</file>
+
+</files>

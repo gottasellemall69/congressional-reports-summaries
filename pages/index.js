@@ -30,8 +30,28 @@ export default function Home() {
     setLoadingSummaries( ( prev ) => ( { ...prev, [ issueNumber ]: true } ) );
 
     try {
-      const response = await axios.post( "/api/summarizePdf", { pdfUrl, issueNumber } );
-      setSelectedSummary( response.data.summary );
+      const response = await fetch( "/api/summarizePdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify( { pdfUrl, issueNumber } )
+      } );
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder( "utf-8" );
+      let summary = "";
+      let buffer = "";
+
+      while ( true ) {
+        const { done, value } = await reader.read();
+        if ( done ) break;
+
+        buffer += decoder.decode( value, { stream: true } );
+
+        // OPTIONAL: You can parse each chunk here, or wait for full parsing after buffer completes
+      }
+
+      const parsed = JSON.parse( buffer );
+      setSelectedSummary( parsed.summary );
     } catch ( err ) {
       setSelectedSummary( "Failed to summarize this document." );
     } finally {
@@ -40,9 +60,10 @@ export default function Home() {
   };
 
 
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-black shadow">
+    <div className="min-h-screen bg-transparent">
+      <header className="bg-none shadow">
         <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between">
           <h1 className="text-3xl font-bold">Congressional Record Daily</h1>
           <button onClick={ fetchRecords } disabled={ loading } className="px-4 py-2 bg-blue-600 text-white rounded-md flex flex-row gap-2 text-nowrap">
@@ -51,7 +72,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 bg-white">
         { loading ? (
           <p className='text-black font-semibold text-center mx-auto mt-12'>Loading...</p>
         ) : error ? (
@@ -63,7 +84,7 @@ export default function Home() {
               return (
                 <div key={ `${ record.issueNumber }-${ index }` } className="bg-black p-6 shadow rounded-lg">
                   <h2 className="text-xl font-semibold">Vol. { record.volumeNumber }, Issue { record.issueNumber }</h2>
-                  <p>{ format( parseISO( record.issueDate ), "MM-dd-yyyy" ) } {/* Formats correctly */ }</p>
+                  <p>{ format( parseISO( record.issueDate ), "MMM-d-yyyy" ) } {/* Formats correctly */ }</p>
 
                   <div className="mt-4 flex gap-4">
                     <a href={ pdfUrl } target="_blank" rel="noopener noreferrer" className="text-blue-600 flex items-center">
@@ -88,7 +109,7 @@ export default function Home() {
         <div className="inset-0 bg-black mx-auto fixed bg-opacity-90 flex flex-wrap items-center h-full justify-center overflow-y-auto">
           <div className="bg-black p-6 rounded-lg w-full max-w-5xl">
             <h2 className="text-xl font-semibold mb-4">Summary</h2>
-            <p className='text-base leading-7 text-pretty'>{ selectedSummary }</p>
+            <p className='text-white text-base leading-7 text-pretty'>{ selectedSummary }</p>
             <button onClick={ () => setSelectedSummary( null ) } className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md">
               Close
             </button>
