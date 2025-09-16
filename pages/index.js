@@ -62,8 +62,8 @@ export default function Home() {
 
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <header className="bg-none shadow">
+    <div className="min-h-screen">
+      <header className="shadow">
         <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between">
           <h1 className="text-3xl font-bold">Congressional Record Daily</h1>
           <button onClick={ fetchRecords } disabled={ loading } className="px-4 py-2 bg-blue-600 text-white rounded-md flex flex-row gap-2 text-nowrap">
