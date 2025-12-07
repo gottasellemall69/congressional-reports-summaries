@@ -34,6 +34,17 @@ function splitIntoChunks( text, maxWords = 20000 ) {
     return chunks;
 }
 
+async function createEmbedding( text ) {
+    if ( !process.env.OPENAI_API_KEY ) return null;
+    const trimmed = text.length > 7000 ? text.slice( 0, 7000 ) : text;
+    const response = await openai.embeddings.create( {
+        model: "text-embedding-3-small",
+        input: trimmed
+    } );
+
+    return response.data?.[ 0 ]?.embedding || null;
+}
+
 async function summarizeChunk( chunk, chunkIndex ) {
     const response = await openai.chat.completions.create( {
         model: "gpt-4o-mini",
@@ -140,9 +151,15 @@ export default async function handler( req, res ) {
         chunkSummaries.sort( ( a, b ) => a.index - b.index );
         const fullSummary = chunkSummaries.map( ( c ) => c.content ).join( "\n\n" );
 
+        const summaryEmbedding = await createEmbedding( fullSummary );
+        const summaryUpdate = { issueNumber, pdfUrl, summary: fullSummary };
+        if ( summaryEmbedding ) {
+            summaryUpdate.summaryEmbedding = summaryEmbedding;
+        }
+
         await collection.updateOne(
             { issueNumber },
-            { $set: { issueNumber, pdfUrl, summary: fullSummary } },
+            { $set: summaryUpdate },
             { upsert: true }
         );
 

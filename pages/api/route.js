@@ -27,6 +27,17 @@ function splitIntoChunks( text, maxWords = 20000 ) {
     return chunks;
 }
 
+async function createEmbedding( text ) {
+    if ( !process.env.OPENAI_API_KEY ) return null;
+    const trimmed = text.length > 7000 ? text.slice( 0, 7000 ) : text;
+    const response = await openai.embeddings.create( {
+        model: "text-embedding-3-small",
+        input: trimmed
+    } );
+
+    return response.data?.[ 0 ]?.embedding || null;
+}
+
 export async function POST( req ) {
     try {
         const { pdfUrl, issueNumber } = await req.json();
@@ -95,9 +106,15 @@ export async function POST( req ) {
                 allSummaries.sort( ( a, b ) => a.index - b.index );
                 const finalSummary = allSummaries.map( ( c ) => c.content ).join( "\n\n" );
 
+                const summaryEmbedding = await createEmbedding( finalSummary );
+                const summaryUpdate = { issueNumber, pdfUrl, summary: finalSummary };
+                if ( summaryEmbedding ) {
+                    summaryUpdate.summaryEmbedding = summaryEmbedding;
+                }
+
                 await summaries.updateOne(
                     { issueNumber },
-                    { $set: { issueNumber, pdfUrl, summary: finalSummary } },
+                    { $set: summaryUpdate },
                     { upsert: true }
                 );
 
