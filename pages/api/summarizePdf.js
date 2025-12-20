@@ -57,11 +57,11 @@ async function summarizeChunk( chunk, chunkIndex ) {
 
                 "\[{Section 1}\]"
                 
-                  
+                  \n
                 
                 "\[{Section 2}\]
                 
-                  
+                  \n
                 
                 "\[{Section 3}\]
                 
