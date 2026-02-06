@@ -21,6 +21,7 @@ const SECTION_OPTIONS = [
 ];
 
 const escapeRegExp = ( value ) => value.replace( /[.*+?^${}()|[\]\\]/g, "\\$&" );
+const makeSummaryKey = ( issueNumber, volumeNumber ) => `${ volumeNumber ?? "unknown" }-${ issueNumber ?? "unknown" }`;
 
 export default function Home() {
   const [ records, setRecords ] = useState( [] );
@@ -97,14 +98,15 @@ export default function Home() {
     JSON.stringify( filters.sections )
   ] );
 
-  const summarizePdf = async ( pdfUrl, issueNumber ) => {
-    setLoadingSummaries( ( prev ) => ( { ...prev, [ issueNumber ]: true } ) );
+  const summarizePdf = async ( pdfUrl, issueNumber, volumeNumber, issueDate ) => {
+    const summaryKey = makeSummaryKey( issueNumber, volumeNumber );
+    setLoadingSummaries( ( prev ) => ( { ...prev, [ summaryKey ]: true } ) );
 
     try {
       const response = await fetch( "/api/summarizePdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify( { pdfUrl, issueNumber } )
+        body: JSON.stringify( { pdfUrl, issueNumber, volumeNumber, issueDate } )
       } );
 
       const reader = response.body.getReader();
@@ -124,7 +126,7 @@ export default function Home() {
       // Update the local record with the new summary preview so the card refreshes immediately
       setRecords( ( prev ) =>
         prev.map( ( rec ) =>
-          rec.issueNumber === issueNumber
+          rec.issueNumber === issueNumber && rec.volumeNumber === volumeNumber
             ? { ...rec, summaryPreview: buildPreview( parsed.summary ), hasSummary: true }
             : rec
         )
@@ -132,7 +134,7 @@ export default function Home() {
     } catch ( err ) {
       setSelectedSummary( "Failed to summarize this document." );
     } finally {
-      setLoadingSummaries( ( prev ) => ( { ...prev, [ issueNumber ]: false } ) );
+      setLoadingSummaries( ( prev ) => ( { ...prev, [ summaryKey ]: false } ) );
     }
   };
 
@@ -381,11 +383,11 @@ export default function Home() {
                           View PDF <ExternalLink className="w-4 h-4" />
                         </a>
                         <button
-                          onClick={ () => summarizePdf( pdfUrl, record.issueNumber ) }
+                          onClick={ () => summarizePdf( pdfUrl, record.issueNumber, record.volumeNumber, record.issueDate ) }
                           className="text-sm font-semibold inline-flex items-center gap-1 text-green-700 hover:underline disabled:opacity-60"
-                          disabled={ loadingSummaries[ record.issueNumber ] }
+                          disabled={ loadingSummaries[ makeSummaryKey( record.issueNumber, record.volumeNumber ) ] }
                         >
-                          { loadingSummaries[ record.issueNumber ] ? "Summarizing..." : "View summary" }
+                          { loadingSummaries[ makeSummaryKey( record.issueNumber, record.volumeNumber ) ] ? "Summarizing..." : "View summary" }
                         </button>
                       </div>
                     </div>
