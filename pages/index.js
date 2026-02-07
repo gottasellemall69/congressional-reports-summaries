@@ -40,6 +40,7 @@ export default function Home() {
   } );
   const [ selectedSummary, setSelectedSummary ] = useState( null );
   const [ loadingSummaries, setLoadingSummaries ] = useState( {} );
+  const [ summaryProgress, setSummaryProgress ] = useState( {} );
 
   const hasActiveFilters = useMemo( () => {
     return Boolean(
@@ -70,7 +71,7 @@ export default function Home() {
           ...filters,
           sections: filters.sections
         },
-        limit: 60
+        limit: 200
       } );
 
       setRecords( response.data.data || [] );
@@ -101,6 +102,18 @@ export default function Home() {
   const summarizePdf = async ( pdfUrl, issueNumber, volumeNumber, issueDate ) => {
     const summaryKey = makeSummaryKey( issueNumber, volumeNumber );
     setLoadingSummaries( ( prev ) => ( { ...prev, [ summaryKey ]: true } ) );
+    setSummaryProgress( ( prev ) => ( { ...prev, [ summaryKey ]: { total: null, completed: 0 } } ) );
+
+    if ( !pdfUrl || !issueNumber || !volumeNumber ) {
+      setSelectedSummary( "Summary unavailable for this record." );
+      setLoadingSummaries( ( prev ) => ( { ...prev, [ summaryKey ]: false } ) );
+      setSummaryProgress( ( prev ) => {
+        const next = { ...prev };
+        delete next[ summaryKey ];
+        return next;
+      } );
+      return;
+    }
 
     try {
       const response = await fetch( "/api/summarizePdf", {
@@ -109,15 +122,64 @@ export default function Home() {
         body: JSON.stringify( { pdfUrl, issueNumber, volumeNumber, issueDate } )
       } );
 
+      if ( !response.ok ) {
+        throw new Error( `Summarize failed: ${ response.status }` );
+      }
+
+      if ( !response.body ) {
+        throw new Error( "No response body returned." );
+      }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder( "utf-8" );
       let buffer = "";
+      let lineBuffer = "";
+      let totalChunks = null;
+      const seenChunkIndexes = new Set();
 
       while ( true ) {
         const { done, value } = await reader.read();
         if ( done ) break;
 
-        buffer += decoder.decode( value, { stream: true } );
+        const decoded = decoder.decode( value, { stream: true } );
+        buffer += decoded;
+        lineBuffer += decoded;
+
+        const lines = lineBuffer.split( "\n" );
+        lineBuffer = lines.pop() ?? "";
+
+        for ( const line of lines ) {
+          const trimmed = line.trim();
+          if ( !trimmed ) continue;
+
+          if ( totalChunks === null ) {
+            const match = trimmed.match( /"totalChunks"\s*:\s*(\d+)/ );
+            if ( match ) {
+              totalChunks = Number( match[ 1 ] );
+              setSummaryProgress( ( prev ) => ( {
+                ...prev,
+                [ summaryKey ]: { total: totalChunks, completed: 0 }
+              } ) );
+            }
+          }
+
+          const jsonLine = trimmed.startsWith( "," ) ? trimmed.slice( 1 ) : trimmed;
+          if ( jsonLine.startsWith( "{" ) && jsonLine.includes( "\"index\"" ) ) {
+            try {
+              const parsedChunk = JSON.parse( jsonLine );
+              if ( Number.isInteger( parsedChunk.index ) && !seenChunkIndexes.has( parsedChunk.index ) ) {
+                seenChunkIndexes.add( parsedChunk.index );
+                const completed = seenChunkIndexes.size;
+                setSummaryProgress( ( prev ) => ( {
+                  ...prev,
+                  [ summaryKey ]: { total: totalChunks, completed }
+                } ) );
+              }
+            } catch ( err ) {
+              // Ignore non-chunk lines or partial JSON.
+            }
+          }
+        }
       }
 
       const parsed = JSON.parse( buffer );
@@ -135,6 +197,11 @@ export default function Home() {
       setSelectedSummary( "Failed to summarize this document." );
     } finally {
       setLoadingSummaries( ( prev ) => ( { ...prev, [ summaryKey ]: false } ) );
+      setSummaryProgress( ( prev ) => {
+        const next = { ...prev };
+        delete next[ summaryKey ];
+        return next;
+      } );
     }
   };
 
@@ -235,11 +302,10 @@ export default function Home() {
                         key={ option.key }
                         type="button"
                         onClick={ () => handleSectionToggle( option.key ) }
-                        className={ `px-3 py-1 rounded-full text-sm border transition ${
-                          isActive
-                            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                            : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
-                        }` }
+                        className={ `px-3 py-1 rounded-full text-sm border transition ${ isActive
+                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                          }` }
                       >
                         { option.label }
                       </button>
@@ -334,6 +400,14 @@ export default function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 { records.map( ( record ) => {
                   const pdfUrl = record.pdfUrl || record.url;
+                  const summaryKey = makeSummaryKey( record.issueNumber, record.volumeNumber );
+                  const canSummarize = record.canSummarize ?? Boolean( pdfUrl && record.issueNumber && record.volumeNumber );
+                  const progress = summaryProgress[ summaryKey ];
+                  const hasDeterminateProgress = Number.isFinite( progress?.total );
+                  const completedChunks = progress?.completed ?? 0;
+                  const progressPercent = hasDeterminateProgress
+                    ? Math.min( 100, Math.round( ( completedChunks / progress.total ) * 100 ) )
+                    : 0;
                   return (
                     <div key={ record.id || record.issueNumber } className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 flex flex-col gap-3">
                       <div className="flex items-start justify-between gap-3">
@@ -385,11 +459,41 @@ export default function Home() {
                         <button
                           onClick={ () => summarizePdf( pdfUrl, record.issueNumber, record.volumeNumber, record.issueDate ) }
                           className="text-sm font-semibold inline-flex items-center gap-1 text-green-700 hover:underline disabled:opacity-60"
-                          disabled={ loadingSummaries[ makeSummaryKey( record.issueNumber, record.volumeNumber ) ] }
+                          disabled={ !canSummarize || loadingSummaries[ summaryKey ] }
+                          title={ canSummarize ? "" : "Summary unavailable for this record." }
                         >
-                          { loadingSummaries[ makeSummaryKey( record.issueNumber, record.volumeNumber ) ] ? "Summarizing..." : "View summary" }
+                          { !canSummarize
+                            ? "Summary unavailable"
+                            : loadingSummaries[ summaryKey ]
+                              ? "Summarizing..."
+                              : "View summary" }
                         </button>
                       </div>
+
+                      { loadingSummaries[ summaryKey ] ? (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                            <span>{ hasDeterminateProgress || completedChunks > 0 ? "Summarizing chunks" : "Preparing summary" }</span>
+                            { hasDeterminateProgress ? (
+                              <span>{ completedChunks } / { progress.total }</span>
+                            ) : completedChunks > 0 ? (
+                              <span>{ completedChunks } received</span>
+                            ) : (
+                              <span>Starting...</span>
+                            ) }
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-red-400/80 overflow-hidden">
+                            { hasDeterminateProgress ? (
+                              <div
+                                className="h-full bg-green-500 transition-all duration-300"
+                                style={ { width: `${ progressPercent }%` } }
+                              />
+                            ) : (
+                              <div className="h-full w-full bg-red-400/60 animate-pulse" />
+                            ) }
+                          </div>
+                        </div>
+                      ) : null }
                     </div>
                   );
                 } ) }
@@ -404,11 +508,11 @@ export default function Home() {
           <div className="bg-white p-6 rounded-xl w-full max-w-4xl shadow-xl max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-slate-900">Summary</h2>
-              <button onClick={ () => setSelectedSummary( null ) } className="text-sm text-slate-600 hover:text-slate-900">
+              <button onClick={ () => setSelectedSummary( null ) } className="px-3 py-3 rounded-md bg-red-500 text-white text-base hover:text-slate-300 hover:bg-black">
                 Close
               </button>
             </div>
-            <p className="text-slate-800 text-base leading-7 whitespace-pre-wrap">{ selectedSummary }</p>
+            <p className="text-slate-800 text-base leading-7 whitespace-pre-wrap text-pretty">{ selectedSummary }</p>
           </div>
         </div>
       ) }

@@ -93,6 +93,73 @@ const extractSections = ( contents = {} ) => {
     } );
 };
 
+const pickPdfUrl = ( record, sections ) => {
+    const sectionUrl = sections.find( ( section ) => section.present )?.url;
+    return record.pdfUrl || sectionUrl || null;
+};
+
+const getRecordKey = ( record ) => {
+    if ( record.issueNumber != null && record.volumeNumber != null ) {
+        return `issue:${ record.volumeNumber }-${ record.issueNumber }`;
+    }
+    const recordId = record._id?.toString?.() ?? record._id;
+    if ( recordId ) return `id:${ recordId }`;
+    const dateKey = record.issueDate ?? "unknown-date";
+    const urlKey = record.pdfUrl || record.url || "unknown-url";
+    return `fallback:${ dateKey }|${ urlKey }`;
+};
+
+const getRecordCompletenessScore = ( record ) => {
+    let score = 0;
+    if ( record.summary ) score += 100;
+    if ( record.pdfUrl ) score += 25;
+    if ( record.sections?.some( ( section ) => section.present ) ) score += 15;
+    if ( record.contents ) score += 10;
+    if ( record.url ) score += 5;
+    return score;
+};
+
+const pickPreferredRecord = ( existingRecord, candidateRecord ) => {
+    const existingHasSummary = Boolean( existingRecord.summary );
+    const candidateHasSummary = Boolean( candidateRecord.summary );
+    if ( existingHasSummary !== candidateHasSummary ) {
+        return candidateHasSummary ? candidateRecord : existingRecord;
+    }
+
+    const existingSimilarity = typeof existingRecord.similarity === "number" ? existingRecord.similarity : null;
+    const candidateSimilarity = typeof candidateRecord.similarity === "number" ? candidateRecord.similarity : null;
+    if ( existingSimilarity !== null && candidateSimilarity !== null && existingSimilarity !== candidateSimilarity ) {
+        return candidateSimilarity > existingSimilarity ? candidateRecord : existingRecord;
+    }
+
+    const existingScore = getRecordCompletenessScore( existingRecord );
+    const candidateScore = getRecordCompletenessScore( candidateRecord );
+    if ( candidateScore !== existingScore ) {
+        return candidateScore > existingScore ? candidateRecord : existingRecord;
+    }
+
+    return existingRecord;
+};
+
+const dedupeRecords = ( records ) => {
+    const map = new Map();
+
+    for ( const record of records ) {
+        const key = getRecordKey( record );
+        const existingRecord = map.get( key );
+        if ( !existingRecord ) {
+            map.set( key, record );
+            continue;
+        }
+
+        map.set( key, pickPreferredRecord( existingRecord, record ) );
+    }
+
+    return Array.from( map.values() );
+};
+
+const hasRequiredValue = ( value ) => value !== undefined && value !== null && value !== "";
+
 const ensureRecordEmbedding = async ( record, db ) => {
     if ( record.summaryEmbedding ) return record.summaryEmbedding;
     if ( !record.summary ) return null;
@@ -120,7 +187,7 @@ export default async function handler( req, res ) {
     }
 
     try {
-        const { query = "", filters = {}, limit = 40 } = req.body || {};
+        const { query = "", filters = {}, limit = 200 } = req.body || {};
         const { db } = await connectToDatabase();
 
         const mongoFilters = buildMongoFilters( filters );
@@ -131,10 +198,14 @@ export default async function handler( req, res ) {
             .limit( 250 );
 
         const records = await cursor.toArray();
-        const sectionsForRecords = records.map( ( record ) => ( {
-            ...record,
-            sections: extractSections( record.contents )
-        } ) );
+        const sectionsForRecords = records.map( ( record ) => {
+            const sections = extractSections( record.contents );
+            return {
+                ...record,
+                sections,
+                pdfUrl: pickPdfUrl( record, sections )
+            };
+        } );
 
         let results = sectionsForRecords;
 
@@ -165,24 +236,28 @@ export default async function handler( req, res ) {
                 }
 
                 scored.sort( ( a, b ) => b.similarity - a.similarity );
-                results = scored.slice( 0, limit );
+                results = scored;
             }
         } else {
-            results = results.slice( 0, limit );
+            results = results;
         }
 
-        const payload = results.map( ( record ) => ( {
+        const dedupedResults = dedupeRecords( results );
+        const limitedResults = dedupedResults.slice( 0, limit );
+
+        const payload = limitedResults.map( ( record ) => ( {
             id: record._id?.toString?.() ?? record.issueNumber,
             issueNumber: record.issueNumber,
             issueDate: record.issueDate,
             volumeNumber: record.volumeNumber,
             sessionNumber: record.sessionNumber,
             url: record.url,
-            pdfUrl: record.contents?.issue?.fullIssue?.entireIssue?.[ 0 ]?.url || record.url,
+            pdfUrl: record.pdfUrl,
             summaryPreview: buildPreview( record.summary ),
             similarity: record.similarity,
             sections: record.sections?.filter( ( section ) => section.present ) ?? [],
             hasSummary: Boolean( record.summary ),
+            canSummarize: hasRequiredValue( record.pdfUrl ) && hasRequiredValue( record.issueNumber ) && hasRequiredValue( record.volumeNumber ),
             updatedAt: record.updateDate || record.fetchedAt
         } ) );
 

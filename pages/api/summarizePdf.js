@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import pdf from "pdf-parse";
 import OpenAI from "openai";
 import { MongoClient } from "mongodb";
@@ -69,6 +69,7 @@ const CONTINUATION_TAIL_CHARS = 4000;
 const CONTINUATION_PROMPT =
     "Continue exactly where you left off. Do not repeat any text. " +
     "Start immediately after the last character. If the summary is complete, respond with an empty string.";
+const TRAILING_EMPTY_SECTION_REGEX = /(\s*\[\{Section\s*\d+\}\]\s*)+$/i;
 
 let cachedClient = null;
 let cachedDb = null;
@@ -200,6 +201,11 @@ const buildContinuationMessages = ( chunk, priorContent ) => {
     ];
 };
 
+const stripTrailingEmptySections = ( text ) => {
+    if ( !text ) return text;
+    return text.replace( TRAILING_EMPTY_SECTION_REGEX, "" ).trimEnd();
+};
+
 async function summarizeChunk( chunk, chunkIndex ) {
     let combined = "";
     let attempt = 0;
@@ -236,25 +242,40 @@ async function summarizeChunk( chunk, chunkIndex ) {
         previousLength = combined.length;
 
         if ( stagnantCount >= 2 ) {
-            console.warn( `⚠️ Chunk ${ chunkIndex } continuation stalled.` );
+            console.warn( `âš ï¸ Chunk ${ chunkIndex } continuation stalled.` );
             break;
         }
 
         attempt += 1;
     }
 
-    return { index: chunkIndex, content: combined };
+    if ( combined && TRAILING_EMPTY_SECTION_REGEX.test( combined ) ) {
+        const response = await openai.chat.completions.create( {
+            model: "gpt-4o-mini",
+            temperature: 0.3,
+            messages: buildContinuationMessages( chunk, combined )
+        } );
+
+        const content = response.choices?.[ 0 ]?.message?.content || "";
+        if ( content.trim() ) {
+            combined = combined ? `${ combined }\n\n${ content }` : content;
+        }
+    }
+
+    return { index: chunkIndex, content: stripTrailingEmptySections( combined ) };
 }
 
 export default async function handler( req, res ) {
     if ( req.method !== "POST" ) {
-        return res.status( 405 ).json( { error: "Method not allowed" } );
+        res.status( 405 ).json( { error: "Method not allowed" } );
+        return;
     }
 
     try {
         const { pdfUrl, issueNumber, volumeNumber, issueDate } = req.body;
         if ( !pdfUrl || !issueNumber || !volumeNumber ) {
-            return res.status( 400 ).json( { error: "Missing PDF URL, Issue Number, or Volume Number" } );
+            res.status( 400 ).json( { error: "Missing PDF URL, Issue Number, or Volume Number" } );
+            return;
         }
 
         const safeIssueNumber = parsePositiveInt( issueNumber, "issue number" );
@@ -272,7 +293,8 @@ export default async function handler( req, res ) {
         const existingSummary = await collection.findOne( { issueNumber: safeIssueNumber, volumeNumber: safeVolumeNumber } );
         if ( existingSummary?.summary ) {
             res.setHeader( "Content-Type", "application/json" );
-            return res.end( JSON.stringify( { summary: existingSummary.summary } ) );
+            res.end( JSON.stringify( { summary: stripTrailingEmptySections( existingSummary.summary ) } ) );
+            return;
         }
 
         const pdfResponse = await axios.get( safePdfUrl, { responseType: "arraybuffer", maxRedirects: 0 } );
@@ -287,6 +309,12 @@ export default async function handler( req, res ) {
         res.setHeader( "Content-Type", "application/json; charset=utf-8" );
         res.setHeader( "Transfer-Encoding", "chunked" );
         res.write( `{"totalChunks": ${ chunks.length }, "chunks":[\n` );
+        if ( typeof res.flushHeaders === "function" ) {
+            res.flushHeaders();
+        }
+        if ( typeof res.flush === "function" ) {
+            res.flush();
+        }
 
 
         for ( let i = 0; i < chunks.length; i++ ) {
@@ -300,10 +328,10 @@ export default async function handler( req, res ) {
             } );
             let summaryText;
             if ( cachedChunk?.summary ) {
-                console.log( `⚡ Using cached chunk ${ i }` );
-                summaryText = cachedChunk.summary;
+                console.log( `âš¡ Using cached chunk ${ i }` );
+                summaryText = stripTrailingEmptySections( cachedChunk.summary );
             } else {
-                console.log( `✍️ Summarizing chunk ${ i + 1 } / ${ chunks.length }` );
+                console.log( `âœï¸ Summarizing chunk ${ i + 1 } / ${ chunks.length }` );
                 const result = await summarizeChunk( chunkText, i );
                 summaryText = result.content;
 
@@ -318,13 +346,18 @@ export default async function handler( req, res ) {
 
             const chunkJson = JSON.stringify( { index: i, content: summaryText } );
             res.write( `${ i > 0 ? "," : "" }${ chunkJson }\n` );
+            if ( typeof res.flush === "function" ) {
+                res.flush();
+            }
         }
 
         res.write( `], "summary":` );
 
         // Assemble full summary
         chunkSummaries.sort( ( a, b ) => a.index - b.index );
-        const fullSummary = chunkSummaries.map( ( c ) => c.content ).join( "\n\n" );
+        const fullSummary = stripTrailingEmptySections(
+            chunkSummaries.map( ( c ) => c.content ).join( "\n\n" )
+        );
 
         const summaryEmbedding = await createEmbedding( fullSummary );
         const summaryUpdate = { issueNumber: safeIssueNumber, volumeNumber: safeVolumeNumber, pdfUrl: safePdfUrl, summary: fullSummary };
@@ -343,9 +376,12 @@ export default async function handler( req, res ) {
 
         res.write( JSON.stringify( fullSummary ) );
         res.write( "}" );
+        if ( typeof res.flush === "function" ) {
+            res.flush();
+        }
         res.end();
     } catch ( error ) {
-        console.error( "❌ Error in summary handler:", error.message );
+        console.error( "âŒ Error in summary handler:", error.message );
         if ( !res.headersSent ) {
             res.status( 500 ).json( { error: "Failed to summarize PDF" } );
         } else {
