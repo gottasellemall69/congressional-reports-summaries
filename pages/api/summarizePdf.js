@@ -2,6 +2,7 @@
 import pdf from "pdf-parse";
 import OpenAI from "openai";
 import { MongoClient } from "mongodb";
+import { createSummaryResponse } from "../../utils/openaiResponses";
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const DATABASE_NAME = "congressionalSummaries";
@@ -186,15 +187,13 @@ async function createEmbedding( text ) {
     return response.data?.[ 0 ]?.embedding || null;
 }
 
-const buildSummaryMessages = ( chunk ) => ( [
-    { role: "system", content: SUMMARY_SYSTEM_PROMPT },
+const buildSummaryInput = ( chunk ) => ( [
     { role: "user", content: chunk }
 ] );
 
-const buildContinuationMessages = ( chunk, priorContent ) => {
+const buildContinuationInput = ( chunk, priorContent ) => {
     const tail = priorContent.slice( -CONTINUATION_TAIL_CHARS );
     return [
-        { role: "system", content: SUMMARY_SYSTEM_PROMPT },
         { role: "user", content: chunk },
         { role: "assistant", content: tail },
         { role: "user", content: CONTINUATION_PROMPT }
@@ -213,16 +212,15 @@ async function summarizeChunk( chunk, chunkIndex ) {
     let previousLength = 0;
     let stagnantCount = 0;
 
-    while ( attempt === 0 || finishReason === "length" ) {
-        const messages = attempt === 0 ? buildSummaryMessages( chunk ) : buildContinuationMessages( chunk, combined );
-        const response = await openai.chat.completions.create( {
-            model: "gpt-4o-mini",
-            temperature: 0.3,
-            messages
+    while ( attempt === 0 || finishReason === "max_output_tokens" ) {
+        const input = attempt === 0 ? buildSummaryInput( chunk ) : buildContinuationInput( chunk, combined );
+        const response = await createSummaryResponse( openai, {
+            instructions: SUMMARY_SYSTEM_PROMPT,
+            input
         } );
 
-        const content = response.choices?.[ 0 ]?.message?.content || "";
-        finishReason = response.choices?.[ 0 ]?.finish_reason || null;
+        const content = response.text || "";
+        finishReason = response.incompleteReason;
 
         if ( content.trim() ) {
             combined = combined ? `${ combined }\n\n${ content }` : content;
@@ -230,7 +228,7 @@ async function summarizeChunk( chunk, chunkIndex ) {
             break;
         }
 
-        if ( finishReason !== "length" ) {
+        if ( finishReason !== "max_output_tokens" ) {
             break;
         }
 
@@ -250,13 +248,12 @@ async function summarizeChunk( chunk, chunkIndex ) {
     }
 
     if ( combined && TRAILING_EMPTY_SECTION_REGEX.test( combined ) ) {
-        const response = await openai.chat.completions.create( {
-            model: "gpt-4o-mini",
-            temperature: 0.3,
-            messages: buildContinuationMessages( chunk, combined )
+        const response = await createSummaryResponse( openai, {
+            instructions: SUMMARY_SYSTEM_PROMPT,
+            input: buildContinuationInput( chunk, combined )
         } );
 
-        const content = response.choices?.[ 0 ]?.message?.content || "";
+        const content = response.text || "";
         if ( content.trim() ) {
             combined = combined ? `${ combined }\n\n${ content }` : content;
         }

@@ -4,6 +4,7 @@ import pdf from "pdf-parse";
 import axios from "axios";
 import OpenAI from "openai";
 import { MongoClient } from "mongodb";
+import { createSummaryResponse } from "../../utils/openaiResponses";
 
 const openai = new OpenAI( { apiKey: process.env.OPENAI_API_KEY } );
 
@@ -11,6 +12,46 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const DATABASE_NAME = "congressionalSummaries";
 const COLLECTION_NAME = "summaries";
 const CHUNK_COLLECTION = "chunkSummaries";
+
+const SUMMARY_SYSTEM_PROMPT = `
+Return your response in Markdown.
+You are an expert political analyst tasked with summarizing a section of the official U.S. Congressional Record.
+Your goal is to create an accurate, readable summary that makes complex legislative discussions easy to follow while preserving factual detail.
+Summarize the entire contents of the provided text, including full remarks made by each speaker.
+Use clear transitions between topics or speakers, with a bolded header title for each new section.
+Include party affiliation by appending (D) for Democrat or (R) for Republican after their name.
+
+## Formatting Instructions:
+# Write in paragraphs of 5 to 7 sentences each.
+# Separate each paragraph with a line break:
+
+"[{Section 1}]"
+
+"[{Section 2}]
+
+"[{Section 3}]
+
+...
+
+followed after each paragraph for visual clarity and to make it easier to read.
+
+## Be sure to:
+# Identify and name each speaker when they begin speaking.
+# Capture and explain the key arguments, themes, and rhetorical points made by each speaker, preserving the intent and tone of their statements.
+# Do not omit or paraphrase away the core content of any speech; always summarize completely and clearly.
+# Cite your sources for each summary section/point/topic/analysis.
+
+## If any bills, resolutions, or motions are introduced or passed, be sure to:
+# Clearly name the bill/resolution.
+# Describe its contents and intended effects in plain language.
+# Explain the implications of the bill, especially if debated.
+
+## If any controversial statements, debates, or points of tension arise, highlight:
+# Who said what, the context and significance of the remarks, any possible public or political impact of the bill.
+
+## Formatting Instructions:
+# Write in paragraphs of 5 to 7 sentences each.
+`;
 
 async function connectToDatabase() {
     const client = new MongoClient( MONGODB_URI );
@@ -72,65 +113,14 @@ export async function POST( req ) {
                     if ( cachedChunk?.summary ) {
                         content = cachedChunk.summary;
                     } else {
-                        const response = await openai.chat.completions.create( {
-                            model: "gpt-4o-mini",
-                            temperature: 0.3,
-                            messages: [
-                                {
-                                    role: "system",
-                                    content: `
-                                                    Return your response in Markdown.
-                                                    You are an expert political analyst tasked with summarizing a section of the official U.S. Congressional Record.
-                                                    Your goal is to create an accurate, readable summary that makes complex legislative discussions easy to follow while preserving factual detail.
-                                                    Summarize the entire contents of the provided text, including full remarks made by each speaker.
-                                                    Use clear transitions between topics or speakers, with a bolded header title for each new section.
-                                                    Include party affiliation by appending (D) for Democrat or (R) for Republican after their name.
-                                                    
-                                                    ## Formatting Instructions:
-                                                        # Write in paragraphs of 5 to 7 sentences each.
-                                                        # Separate each paragraph with a line break:
-                                                    
-                                                            "\[{Section 1}\]"
-                                                    
-                                                            \n
-                                                    
-                                                            "\[{Section 2}\]
-                                                    
-                                                            \n
-                                                    
-                                                            "\[{Section 3}\]
-                                                    
-                                                            ...
-                                                    
-                                                        followed after each paragraph for visual clarity and to make it easier to read.
-                                                    
-                                                    ## Be sure to: 
-                                                        # Identify and name each speaker when they begin speaking.
-                                                        # Capture and explain the key arguments, themes, and rhetorical points made by each speaker, preserving the intent and tone of their statements.
-                                                        # Do not omit or paraphrase away the core content of any speech; always summarize completely and clearly.
-                                                        # Cite your sources for each summary section/point/topic/analysis.
-                                    
-                                                    ## If any bills, resolutions, or motions are introduced or passed, be sure to: 
-                                                        # Clearly name the bill/resolution.
-                                                        # Describe its contents and intended effects in plain language.
-                                                        # Explain the implications of the bill, especially if debated.
-                                    
-                                                    ## If any controversial statements, debates, or points of tension arise, highlight:
-                                                        # Who said what, the context and significance of the remarks, any possible public or political impact of the bill.
-                                                    
-                                                    ## Formatting Instructions:
-                                                        # Write in paragraphs of 5 to 7 sentences each.
-                                                        
-                                                        `
-                                },
-                                {
-                                    role: "user",
-                                    content: chunks[ i ]
-                                }
+                        const response = await createSummaryResponse( openai, {
+                            instructions: SUMMARY_SYSTEM_PROMPT,
+                            input: [
+                                { role: "user", content: chunks[ i ] }
                             ]
                         } );
 
-                        content = response.choices[ 0 ].message.content;
+                        content = response.text;
 
                         await chunkSummaries.updateOne(
                             { issueNumber, chunkIndex: i },
