@@ -68,6 +68,34 @@ function splitIntoChunks( text, maxWords = 20000 ) {
     return chunks;
 }
 
+function validatePdfUrl( value ) {
+    if ( typeof value !== "string" ) return null;
+
+    const allowedHosts = ( process.env.PDF_ALLOWED_HOSTS || "" )
+        .split( "," )
+        .map( ( host ) => host.trim().toLowerCase() )
+        .filter( Boolean );
+
+    if ( allowedHosts.length === 0 ) return null;
+
+    try {
+        const parsed = new URL( value );
+        if (
+            parsed.protocol !== "https:" ||
+            parsed.username ||
+            parsed.password ||
+            ( parsed.port && parsed.port !== "443" ) ||
+            !allowedHosts.includes( parsed.hostname.toLowerCase() )
+        ) {
+            return null;
+        }
+
+        return parsed.toString();
+    } catch {
+        return null;
+    }
+}
+
 async function createEmbedding( text ) {
     if ( !process.env.OPENAI_API_KEY ) return null;
     const trimmed = text.length > 7000 ? text.slice( 0, 7000 ) : text;
@@ -86,6 +114,11 @@ export async function POST( req ) {
             return NextResponse.json( { error: "Missing required fields" }, { status: 400 } );
         }
 
+        const validatedPdfUrl = validatePdfUrl( pdfUrl );
+        if ( !validatedPdfUrl ) {
+            return NextResponse.json( { error: "Invalid PDF URL" }, { status: 400 } );
+        }
+
         const db = await connectToDatabase();
         const summaries = db.collection( COLLECTION_NAME );
         const chunkSummaries = db.collection( CHUNK_COLLECTION );
@@ -95,7 +128,10 @@ export async function POST( req ) {
             return NextResponse.json( { summary: cached.summary } );
         }
 
-        const pdfResponse = await axios.get( pdfUrl, { responseType: "arraybuffer" } );
+        const pdfResponse = await axios.get( validatedPdfUrl, {
+            responseType: "arraybuffer",
+            maxRedirects: 0
+        } );
         const data = await pdf( Buffer.from( pdfResponse.data ) );
         const chunks = splitIntoChunks( data.text );
 
@@ -140,7 +176,7 @@ export async function POST( req ) {
                 const finalSummary = allSummaries.map( ( c ) => c.content ).join( "\n\n" );
 
                 const summaryEmbedding = await createEmbedding( finalSummary );
-                const summaryUpdate = { issueNumber, pdfUrl, summary: finalSummary };
+                const summaryUpdate = { issueNumber, pdfUrl: validatedPdfUrl, summary: finalSummary };
                 if ( summaryEmbedding ) {
                     summaryUpdate.summaryEmbedding = summaryEmbedding;
                 }
