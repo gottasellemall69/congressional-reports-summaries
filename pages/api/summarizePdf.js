@@ -1,4 +1,6 @@
 ﻿import axios from "axios";
+import { lookup as dnsLookup } from "node:dns/promises";
+import https from "node:https";
 import pdf from "pdf-parse";
 import OpenAI from "openai";
 import { MongoClient } from "mongodb";
@@ -293,8 +295,29 @@ export default async function handler( req, res ) {
             res.end( JSON.stringify( { summary: stripTrailingEmptySections( existingSummary.summary ) } ) );
             return;
         }
+        const parsedPdfUrl = new URL( safePdfUrl );
+        const resolvedAddresses = await dnsLookup( parsedPdfUrl.hostname, { all: true, verbatim: true } );
+        if (
+            resolvedAddresses.length === 0 ||
+            resolvedAddresses.some( ( { address } ) => isPrivateIPv4( address ) || isPrivateIPv6( address ) )
+        ) {
+            throw new Error( "PDF URL host is not allowed" );
+        }
 
-        const pdfResponse = await axios.get( safePdfUrl, { responseType: "arraybuffer", maxRedirects: 0 } );
+        const pinnedLookup = ( hostname, options, callback ) => {
+            const addresses = resolvedAddresses.map( ( { address, family } ) => ( { address, family } ) );
+            if ( options && typeof options === "object" && options.all ) {
+                callback( null, addresses );
+                return;
+            }
+            callback( null, addresses[ 0 ].address, addresses[ 0 ].family );
+        };
+        const pdfResponse = await axios.get( safePdfUrl, {
+            responseType: "arraybuffer",
+            maxRedirects: 0,
+            proxy: false,
+            httpsAgent: new https.Agent( { lookup: pinnedLookup } )
+        } );
         const pdfBuffer = Buffer.from( pdfResponse.data );
         const data = await pdf( pdfBuffer );
         const textContent = data.text;
