@@ -70,7 +70,7 @@ const CONTINUATION_TAIL_CHARS = 4000;
 const CONTINUATION_PROMPT =
     "Continue exactly where you left off. Do not repeat any text. " +
     "Start immediately after the last character. If the summary is complete, respond with an empty string.";
-const TRAILING_EMPTY_SECTION_REGEX = /(\s*\[\{Section\s*\d+\}\]\s*)+$/i;
+const TRAILING_EMPTY_SECTION_REGEX = /\s*(?:\[\{Section\s*\d+\}\s*)+$/i;
 
 let cachedClient = null;
 let cachedDb = null;
