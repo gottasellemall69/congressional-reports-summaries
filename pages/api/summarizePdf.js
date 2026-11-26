@@ -1,5 +1,7 @@
 ﻿import axios from "axios";
 import pdf from "pdf-parse";
+import { lookup } from "node:dns";
+import https from "node:https";
 import OpenAI from "openai";
 import { MongoClient } from "mongodb";
 import { createSummaryResponse } from "../../utils/openaiResponses";
@@ -96,6 +98,40 @@ const isAllowedPdfHost = ( hostname ) => {
     if ( ALLOWED_PDF_HOSTS.has( hostname ) ) return true;
     return ALLOWED_PDF_SUFFIXES.some( ( suffix ) => hostname.endsWith( suffix ) );
 };
+
+const lookupPublicPdfHost = ( hostname, options, callback ) => {
+    lookup( hostname, { all: true, verbatim: true }, ( error, addresses ) => {
+        if ( error ) {
+            callback( error );
+            return;
+        }
+
+        if (
+            addresses.length === 0 ||
+            addresses.some( ( { address } ) => isPrivateIPv4( address ) || isPrivateIPv6( address ) )
+        ) {
+            callback( new Error( "PDF URL host resolved to a disallowed address" ) );
+            return;
+        }
+
+        const matchingAddresses = options?.family
+            ? addresses.filter( ( { family } ) => family === options.family )
+            : addresses;
+
+        if ( matchingAddresses.length === 0 ) {
+            callback( new Error( "PDF URL host has no usable addresses" ) );
+            return;
+        }
+
+        if ( options?.all ) {
+            callback( null, matchingAddresses );
+        } else {
+            callback( null, matchingAddresses[0].address, matchingAddresses[0].family );
+        }
+    } );
+};
+
+const pdfHttpsAgent = new https.Agent( { lookup: lookupPublicPdfHost } );
 
 const validatePdfUrl = ( rawUrl ) => {
     if ( typeof rawUrl !== "string" ) {
@@ -294,7 +330,11 @@ export default async function handler( req, res ) {
             return;
         }
 
-        const pdfResponse = await axios.get( safePdfUrl, { responseType: "arraybuffer", maxRedirects: 0 } );
+        const pdfResponse = await axios.get( safePdfUrl, {
+            responseType: "arraybuffer",
+            maxRedirects: 0,
+            httpsAgent: pdfHttpsAgent
+        } );
         const pdfBuffer = Buffer.from( pdfResponse.data );
         const data = await pdf( pdfBuffer );
         const textContent = data.text;
